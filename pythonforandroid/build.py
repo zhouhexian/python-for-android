@@ -868,6 +868,19 @@ def run_pymodules_install(ctx, arch, modules, project_dir=None,
     # Use our hostpython to create the virtualenv
     host_python = sh.Command(ctx.hostpython)
     with current_directory(join(ctx.build_dir)):
+        # NOTE(fork fix): p4a reuses one build_dir for every architecture, so
+        # the venv created for the previous architecture is still there.
+        # Re-running `python -m venv venv` on top of it makes ensurepip
+        # overlay the bundled (old) pip onto an already upgraded pip, which
+        # leaves a mixed installation: installer.py comes from pip 26.x and
+        # imports `open_rich_spinner`, while spinners.py is still the old
+        # version that does not define it. Any later pip invocation then dies
+        # with "cannot import name 'open_rich_spinner' from
+        # 'pip._internal.cli.spinners'". Dropping the leftover venv keeps
+        # every architecture on a clean, self-consistent pip.
+        _venv_dir = join(ctx.build_dir, 'venv')
+        if exists(_venv_dir):
+            shutil.rmtree(_venv_dir, ignore_errors=True)
         shprint(host_python, '-m', 'venv', 'venv')
 
         # Prepare base environment and upgrade pip:
