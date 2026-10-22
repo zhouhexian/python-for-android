@@ -117,7 +117,9 @@ dependencies {
     {%- endfor -%}
     {%- if args.depends -%}
     {%- for depend in args.depends %}
+    {%- if depend %}
     implementation '{{ depend }}'
+    {%- endif %}
     {%- endfor %}
     {%- endif %}
     {% if args.presplash_lottie %}
